@@ -1,4 +1,4 @@
-TheCannonGalah
+TheGALAHCannon
 ==============
 
 This is the code associated with *The Cannon*, a data-driven method for
