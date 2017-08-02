@@ -47,11 +47,12 @@ def load_labels(cannon_version,labels,labels_ref):
     ids = data['sobject_id']
     inds = ids.argsort()
     ids = ids[inds]
-    teff = data['TEFF']
-    logg = data['LOGG']
-    feh  = data['FEH']
+    teff = data[labels_ref[0]]
+    logg = data[labels_ref[1]]
+    feh  = data[labels_ref[2]]
     print("OBS: Here we have to get a general choice from the labels, right now it is TEFF,LOGG,FEH")
     tr_labels = np.vstack((teff,logg,feh)).T
+    print(str(len(ids))+" IDs loaded")
     return ids, tr_labels
 
 def load_spectra(tr_ID,wl_grid):
@@ -74,33 +75,44 @@ def load_spectra(tr_ID,wl_grid):
         Inverse variance values corresponding to flux values
     """
     nstars = len(tr_ID)
-    npixels = len(wl_grid)
+    npixels = len(wl_grid['wl_ccd1'])+len(wl_grid['wl_ccd2'])+len(wl_grid['wl_ccd3'])+len(wl_grid['wl_ccd4'])
 
     fluxes = 1.0*np.ones((nstars, npixels), dtype=float)
     ivars  = 0.000001*np.ones((nstars, npixels), dtype=float)
 
     for jj, each_ID in enumerate(tr_ID):
 
+        flux_spectrum = []
+        flux_err_spectrum = []
+
         for each_ccd in [1,2,3,4]:
     
             # First get information from FITS file
-            fits_ccd = pyfits.open('SPECTRA/dr5.2/'+str(each_ID)[0:6]+'/standard/com/'+str(each_ID)+str(each_ccd)+'.fits')
-            flux = np.array(fits_ccd[4].data)
+            try:
+                fits_ccd = pyfits.open('SPECTRA/dr5.2/'+str(each_ID)[0:6]+'/standard/com/'+str(each_ID)+str(each_ccd)+'.fits')
+            except:
+                sys.exit('Could not find spectrum SPECTRA/dr5.2/'+str(each_ID)[0:6]+'/standard/com/'+str(each_ID)+str(each_ccd)+'.fits!')
+            try:
+                flux = np.array(fits_ccd[4].data)
+            except:
+                sys.exit('Could not load 4th extension of spectrum!')
             flux_err = np.array(fits_ccd[1].data)
             if each_ccd == 4:
-                flux_err = flux_err[len(flux) - len(flux_err):]
-            start_wl = file_in[4].header['CRVAL1']
-            diff_wl = file_in[4].header['CDELT1']
-            ccd_pixels = file_in[4].header['NAXIS']
+                flux_err = flux_err[len(flux_err) - len(flux):]
+            start_wl = fits_ccd[4].header['CRVAL1']
+            diff_wl = fits_ccd[4].header['CDELT1']
+            ccd_pixels = fits_ccd[4].header['NAXIS1']
             fits_ccd.close()
 
-            wl_ccd     = diff_wl * (ccd_pixels) + start_wl
+            wl_ccd     = diff_wl * np.arange(ccd_pixels) + start_wl
 
             # Then interpolate onto wl_grid
             
-            fluxes[jj,:] += np.interp(wl_grid,wl_ccd,flux)
-            flux_err = np.interp(wl_grid,wl_ccd,flux_err)
-            ivars[jj,:] += 1. / flux_err**2
+            flux_spectrum.append(np.interp(wl_grid['wl_ccd'+str(each_ccd)],wl_ccd,flux))
+            flux_err_spectrum.append(np.interp(wl_grid['wl_ccd'+str(each_ccd)],wl_ccd,flux_err))
+    
+        fluxes[jj,:] = np.concatenate((flux_spectrum))
+        ivars[jj,:] += 1. / np.array(np.concatenate((flux_err_spectrum)))**2
     print("Spectra loaded")
     return fluxes, ivars
 

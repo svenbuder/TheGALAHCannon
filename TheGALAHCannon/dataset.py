@@ -8,18 +8,18 @@ rc('text', usetex=True)
 rc('font', family='serif')
 from .helpers.corner import corner
 from .helpers import Table
-from .find_continuum_pixels import * 
-from .continuum_normalization import \
-    (_cont_norm_gaussian_smooth,
-     _cont_norm_running_quantile,
-     _cont_norm_running_quantile_regions,
-     _cont_norm_running_quantile_mp,
-     _cont_norm_running_quantile_regions_mp,
-     _find_cont_fitfunc,
-     _find_cont_fitfunc_regions,
-     _cont_norm,
-     _cont_norm_regions)
-from .find_continuum_pixels import _find_contpix,_find_contpix_regions
+#from .find_continuum_pixels import * 
+#from .continuum_normalization import \
+#    (_cont_norm_gaussian_smooth,
+#     _cont_norm_running_quantile,
+#     _cont_norm_running_quantile_regions,
+#     _cont_norm_running_quantile_mp,
+#     _cont_norm_running_quantile_regions_mp,
+#     _find_cont_fitfunc,
+#     _find_cont_fitfunc_regions,
+#     _cont_norm,
+#     _cont_norm_regions)
+#from .find_continuum_pixels import _find_contpix,_find_contpix_regions
 from multiprocessing import cpu_count
 from astropy.io import fits
 from astropy.table import Table
@@ -37,7 +37,20 @@ else:
 class Dataset(object):
     """ A class to represent Cannon input: a dataset of spectra and labels """
 
-    def __init__(self, wl, tr_ID, tr_flux, tr_ivar, tr_label, test_ID, test_flux, test_ivar):
+    def __init__(self, wl, tr_ID, tr_flux, tr_ivar, tr_label, test_ID, test_flux, test_ivar, wl_filter):
+        """ Initiate a Dataset object
+
+        Parameters
+        ----------
+        wl: grid of wavelength values, onto which all spectra are mapped
+        tr_ID: array of IDs of training objects
+        tr_flux: array of flux values for training objects, [nobj, npix]
+        tr_ivar: array [nobj, npix] of inverse variance values for training objects
+        tr_label: array [nobj, nlabel]
+        test_ID: array [nobj[ of IDs of test objects
+        test_flux: array [nobj, npix] of flux values for test objects
+        test_ivar: array [nobj, npix] of inverse variance values for test objects
+        """
         print("Loading dataset")
         print("This may take a while...")
         self.wl = wl
@@ -48,6 +61,7 @@ class Dataset(object):
         self.test_ID = test_ID
         self.test_flux = test_flux
         self.test_ivar = test_ivar
+        self.wl_filter = wl_filter
         self._label_names = None
         self.ranges = None
         
@@ -72,8 +86,8 @@ class Dataset(object):
         -------
         SNR: float
         """
-        take = ivar != 0
-        SNR = float(np.median(flux[take]*(ivar[take]**0.5)))
+        take = ivar > 0
+        SNR = float(np.nanmedian(flux[take]*(ivar[take]**0.5)))
         return SNR  
 
 
@@ -412,12 +426,13 @@ class Dataset(object):
             label_name = label_names[i]
             test_vals = test_labels[:,i]
             warning = np.logical_or(test_vals < lower[i], test_vals > upper[i])
+            print("Reference label %s" % label_name)
+            print("flagged %s stars beyond 2-sig of ref labels" % sum(warning))
             filename = "flagged_stars_%s.txt" % i
             with open(filename, 'w') as output:
                 for star in test_IDs[warning]:
-                    output.write('{0:s}\n'.format(star))
-            print("Reference label %s" % label_name)
-            print("flagged %s stars beyond 2-sig of ref labels" % sum(warning))
+                    print(star)
+                    output.write('{0:s}\n'.format(str(star)))
             print("Saved list %s" % filename)
 
 
@@ -469,9 +484,9 @@ class Dataset(object):
             npoints = len(diff)
             mu = np.mean(diff)
             sig = np.std(diff)
-            ax2.hist(diff)
-            #ax2.hist(diff, range=[-3*sig,3*sig], color='k', bins=np.sqrt(npoints),
-            #        orientation='horizontal', alpha=0.3, histtype='stepfilled')
+            #ax2.hist(diff, orientation='horizontal')
+            ax2.hist(diff, range=[-3*sig,3*sig], color='k', bins=int(np.sqrt(npoints)),
+                    orientation='horizontal', alpha=0.3, histtype='stepfilled')
             ax2.tick_params(axis='x', labelsize=14)
             ax2.tick_params(axis='y', labelsize=14)
             ax2.set_xlabel("Count", fontsize=14)
@@ -525,6 +540,7 @@ def convert_to_hdulist(ds):
                  ds.tr_flux,
                  ds.tr_ivar,
                  ds.tr_label,
+                 ds.wl_filter,
                  ds.test_ID,
                  ds.test_SNR,
                  ds.test_flux,
@@ -537,6 +553,7 @@ def convert_to_hdulist(ds):
                  'tr_flux',
                  'tr_ivar',
                  'tr_label',
+                 'wl_filter',
                  'test_ID',
                  'test_SNR',
                  'test_flux',
@@ -552,14 +569,15 @@ def convert_to_hdulist(ds):
                           'table',
                           'image',
                           'image',
+                          'image',
                           'image']
 
     # construct Primary header
     header = fits.Header()
     header['author'] = 'Bo Zhang (@NAOC)'
     header['version'] = 'v1.0'
-    header['last_modified'] = 'Sat 11 Jun 2016'
-    header['data'] = 'TheCannon dataset object'
+    header['last_modified'] = 'Mon 31 Jul 2017'
+    header['data'] = 'TheGALAHCannon dataset object'
 
     # initialize HDU list
     print('@Bo Zhang: initializing the HDU list ...')
