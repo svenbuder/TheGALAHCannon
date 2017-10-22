@@ -21,8 +21,8 @@ Files (in order of suggested use)
    INPUT: version_cannon, version_reduction, mode
 
 2) Notebook to train and later test based on the training set \
-   **Cannon_train.ipynb**
-   INPUT: version_cannon, version_reduction, mode, obs_date \
+   **Cannon_train.ipynb** \
+   INPUT: version_cannon, version_reduction, mode, obs_date
 
 3) Notebook to create test set \
    **Cannon_maketest.ipynb** \
