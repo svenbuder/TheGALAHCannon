@@ -17,29 +17,29 @@ Files (in order of suggested use)
 ---------------------------------
 
 1) Notebook to create training set \
-   Cannon_maketraining.ipynb \
+   **Cannon_maketraining.ipynb** \
    INPUT: version_cannon, version_reduction, mode
 
 2) Notebook to train and later test based on the training set \
-   Cannon_train.ipynb
+   **Cannon_train.ipynb**
    INPUT: version_cannon, version_reduction, mode, obs_date \
 
 3) Notebook to create test set \
-   Cannon_maketest.ipynb \
+   **Cannon_maketest.ipynb** \
    INPUT: version_reduction
 
 4) Notebook to create abundance training sets (after stellar parameter run) \
-   Cannon_ab_trainingset_preparations.ipynb \
+   **Cannon_ab_trainingset_preparations.ipynb** \
    INPUT: version_cannon, version_reduction
 
 5) Notebook to collect trainingset and check performance (incl. error estimation) \
-   Cannon_collect_trainingset.ipynb \
+   **Cannon_collect_trainingset.ipynb** \
    INPUT: version_cannon, version_reduction
 
 6) Notebook to collect testset of given obs_date \
-   Cannon_collect_test.ipynb \
+   **Cannon_collect_test.ipynb** \
    INPUT: version_cannon, version_reduction, obs_date
 
 7) Notebook to stack training set fits and obs_date fits to final sobject_cannon*.fits \
-   Cannon_stack_fits.ipynb \
+   **Cannon_stack_fits.ipynb** \
    INPUT: version_cannon, version_reduction
